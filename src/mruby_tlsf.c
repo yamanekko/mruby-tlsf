@@ -10,6 +10,22 @@ typedef struct mrb_tlsf_t {
 
 /**
  *
+ * return 1 or 0 if pointer is in TLSF pool area or not
+ *
+ */
+mrb_int
+mrb_tlsf_managed_addr_p(mrb_state *mrb, void *ptr)
+{
+  struct mrb_tlsf_t *t = (struct mrb_tlsf_t*)mrb->allocf_ud;
+  if (((intptr_t)t->tlsf < (intptr_t)ptr) && ((intptr_t)ptr < (intptr_t)t->tlsf + t->total)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+/**
+ *
  * allocation function using TLSF.
  *
  */
@@ -24,12 +40,21 @@ mrb_tlsf_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 #ifdef MRB_TLSF_DEBUG
       fprintf(stdout, "free:    (%p)\n", p);
 #endif
-      tlsf_free(t->tlsf, p);
+      if (mrb_tlsf_managed_addr_p(mrb, p)) {
+        tlsf_free(t->tlsf, p);
+      } else {
+        // ignore if non-TLSF address
+      }
     }
     return NULL;
   }
   else {
-    p2 = tlsf_realloc(t->tlsf, p, size);
+    // use realloc if TLSF pointer, or use malloc if non-TLSF pointer
+    if (mrb && mrb_tlsf_managed_addr_p(mrb, p)) {
+      p2 = tlsf_realloc(t->tlsf, p, size);
+    } else {
+      p2 = tlsf_malloc(t->tlsf, size);
+    }
 #ifdef MRB_TLSF_DEBUG
     if (p) {
       fprintf(stdout, "realloc: (%p) %zu\n", p, size);
