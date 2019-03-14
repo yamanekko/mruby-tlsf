@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -g -Wall
+##CFLAGS = -g -Wall
+CFLAGS = -Wall
 INCLUDES = -I../mruby/include -I../include
 LDFLAGS = -L../mruby/build/host/lib -lmruby
 PROGRAM = cmd

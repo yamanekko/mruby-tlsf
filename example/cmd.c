@@ -24,11 +24,12 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  mrb_load_string(mrb, "print 'free: ', TLSF::available_memory, \"\\n\"");
-  mrb_load_string(mrb, "print 'total: ' , TLSF::total_memory, \"\\n\"");
-  mrb_load_string(mrb, "print 'used: ', TLSF::used_memory, \"\\n\"");
+  mrb_load_string(mrb, "printf \"total: %8d\\n\", TLSF::total_memory");
+  mrb_load_string(mrb, "printf \"used:  %8d\\n\", TLSF::used_memory");
+  mrb_load_string(mrb, "printf \"free:  %8d\\n\", TLSF::available_memory");
   mrb_load_string(mrb, "p 'hello world!'");
-  mrb_load_string(mrb, "print 'free: ', TLSF::available_memory, \"\\n\"");
+  mrb_load_string(mrb, "printf \"used:  %8d\\n\", TLSF::used_memory");
+  mrb_load_string(mrb, "printf \"free:  %8d\\n\", TLSF::available_memory");
 
   mrb_close_tlsf(mrb);
   return ret;
