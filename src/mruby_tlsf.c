@@ -1,5 +1,7 @@
 #include <mruby.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "tlsf.h"
 #include "mruby_tlsf.h"
 
@@ -49,11 +51,14 @@ mrb_tlsf_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
     return NULL;
   }
   else {
-    // use realloc if TLSF pointer, or use malloc if non-TLSF pointer
+    // use realloc if TLSF pointer, or use malloc && copy if non-TLSF pointer
     if (mrb && mrb_tlsf_managed_addr_p(mrb, p)) {
       p2 = tlsf_realloc(t->tlsf, p, size);
     } else {
       p2 = tlsf_malloc(t->tlsf, size);
+      if (p) {
+        memcpy(p2, p, size); // unmanaged spaces are also copied
+      }
     }
 #ifdef MRB_TLSF_DEBUG
     if (p) {
