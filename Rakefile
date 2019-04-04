@@ -1,5 +1,5 @@
 MRUBY_CONFIG=File.expand_path(ENV["MRUBY_CONFIG"] || "./build_config_sample.rb")
-RAKE="ruby ./minirake"
+RAKE="rake"
 MRUBY_VERSION = "master"
 
 require 'fileutils'
