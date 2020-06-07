@@ -1,3 +1,5 @@
+#ifndef TOPPERS
+
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>
@@ -1262,3 +1264,5 @@ void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
 
 	return p;
 }
+
+#endif /* TOPPERS */
