@@ -122,7 +122,9 @@ mrb_close_tlsf(mrb_state *mrb)
 {
   mrb_tlsf_t *t = (mrb_tlsf_t*)mrb->allocf_ud;
   mrb_close(mrb);
-#ifndef TOPPERS
+#ifdef TOPPERS
+  tlsf_free(t);
+#else
   tlsf_t tlsf = t->tlsf;
   tlsf_free(t->tlsf, t);
   tlsf_destroy(tlsf);
