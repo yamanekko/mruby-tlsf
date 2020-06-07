@@ -6,7 +6,7 @@
 #include "mruby_tlsf.h"
 
 typedef struct mrb_tlsf_t {
-  tlsf_t tlsf;
+  void *tlsf;
   mrb_int total;
 } mrb_tlsf_t;
 
@@ -42,15 +42,21 @@ mrb_tlsf_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 #ifdef MRB_TLSF_DEBUG
       fprintf(stdout, "free:    (%p)\n", p);
 #endif
+#ifdef TOPPERS
+      tlsf_free(p);
+#else
       if (mrb_tlsf_managed_addr_p(mrb, p)) {
         tlsf_free(t->tlsf, p);
       } else {
         // ignore if non-TLSF address
       }
+#endif /* TOPPERS */
     }
     return NULL;
-  }
-  else {
+  } else {
+#ifdef TOPPERS
+    p2 = tlsf_realloc(p, size);
+#else
     // use realloc if TLSF pointer, or use malloc && copy if non-TLSF pointer
     if (mrb && mrb_tlsf_managed_addr_p(mrb, p)) {
       p2 = tlsf_realloc(t->tlsf, p, size);
@@ -60,6 +66,7 @@ mrb_tlsf_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
         memcpy(p2, p, size); // unmanaged spaces are also copied
       }
     }
+#endif /* TOPPERS */
 #ifdef MRB_TLSF_DEBUG
     if (p) {
       fprintf(stdout, "realloc: (%p) %zu\n", p, size);
@@ -79,9 +86,14 @@ mrb_tlsf_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 MRB_API struct mrb_tlsf_t*
 mrb_tlsf_init(void *mem, size_t bytes)
 {
+#ifdef TOPPERS
+  mrb_tlsf_t *t = (mrb_tlsf_t *)tlsf_malloc(sizeof(mrb_tlsf_t));
+  t->tlsf = mem;
+#else
   tlsf_t tlsf = tlsf_create_with_pool(mem, bytes);
   mrb_tlsf_t *t = (mrb_tlsf_t *)tlsf_malloc(tlsf, sizeof(mrb_tlsf_t));
   t->tlsf = tlsf;
+#endif /* TOPPERS */
   t->total = bytes;
   return t;
 }
@@ -110,9 +122,13 @@ mrb_close_tlsf(mrb_state *mrb)
 {
   mrb_tlsf_t *t = (mrb_tlsf_t*)mrb->allocf_ud;
   mrb_close(mrb);
+#ifdef TOPPERS
+  tlsf_free(t);
+#else
   tlsf_t tlsf = t->tlsf;
   tlsf_free(t->tlsf, t);
   tlsf_destroy(tlsf);
+#endif /* TOPPERS */
   return;
 }
 
@@ -134,8 +150,12 @@ mrb_tlsf_memory_walker(void* ptr, size_t size, int used, void* user)
 MRB_API mrb_value
 mrb_tlsf_total_memory(mrb_state *mrb, mrb_value obj)
 {
-  mrb_tlsf_t *t = (mrb_tlsf_t*)mrb->allocf_ud;
+  mrb_tlsf_t *t = (mrb_tlsf_t *)mrb->allocf_ud;
+#ifdef TOPPERS
+  return mrb_fixnum_value(get_max_size(t->tlsf));
+#else
   return mrb_fixnum_value(t->total);
+#endif /* TOPPERS */
 }
 
 /**
@@ -147,12 +167,16 @@ mrb_tlsf_total_memory(mrb_state *mrb, mrb_value obj)
 MRB_API mrb_value
 mrb_tlsf_used_memory(mrb_state *mrb, mrb_value obj)
 {
+  mrb_tlsf_t *t = (mrb_tlsf_t *)mrb->allocf_ud;
+#ifdef TOPPERS
+  return mrb_fixnum_value(get_used_size(t->tlsf));
+#else
   mrb_int available = 0;
-  mrb_tlsf_t *t = (mrb_tlsf_t*)mrb->allocf_ud;
   pool_t pool = tlsf_get_pool(t->tlsf);
   tlsf_walk_pool(pool, mrb_tlsf_memory_walker, (void *)&available);
 
   return mrb_fixnum_value(t->total - available);
+#endif /* TOPPERS */
 }
 
 /**
@@ -164,12 +188,16 @@ mrb_tlsf_used_memory(mrb_state *mrb, mrb_value obj)
 MRB_API mrb_value
 mrb_tlsf_available_memory(mrb_state *mrb, mrb_value obj)
 {
+  mrb_tlsf_t *t = (mrb_tlsf_t *)mrb->allocf_ud;
+#ifdef TOPPERS
+  return mrb_fixnum_value(get_max_size(t->tlsf) - get_used_size(t->tlsf));
+#else
   mrb_int available = 0;
-  mrb_tlsf_t *t = (mrb_tlsf_t*)mrb->allocf_ud;
   pool_t pool = tlsf_get_pool(t->tlsf);
   tlsf_walk_pool(pool, mrb_tlsf_memory_walker, (void *)&available);
 
   return mrb_fixnum_value(available);
+#endif /* TOPPERS */
 }
 
 void
