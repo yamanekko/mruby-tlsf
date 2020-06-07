@@ -1,3 +1,4 @@
+#ifndef TOPPERS
 #ifndef INCLUDED_tlsf
 #define INCLUDED_tlsf
 
@@ -88,3 +89,4 @@ int tlsf_check_pool(pool_t pool);
 #endif
 
 #endif
+#endif /* end of TOPPERS */
